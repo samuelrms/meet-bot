@@ -1,0 +1,26 @@
+{
+  "name": "meet-music-bot",
+  "version": "1.0.0",
+  "description": "Bot de música para Google Meet via PulseAudio + Puppeteer",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "start": "tsc && node dist/index.js",
+    "setup": "bash setup.sh",
+    "test": "vitest run --coverage",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "chalk": "^4.1.2",
+    "puppeteer": "^21.6.1"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^25.5.0",
+    "@vitest/coverage-v8": "^4.1.1",
+    "typescript": "^6.0.2",
+    "vitest": "^4.1.1"
+  }
+}
