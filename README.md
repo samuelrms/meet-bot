@@ -10,6 +10,7 @@ Bot de música para **Google Meet** no Linux: microfone virtual (PulseAudio/Pipe
 | Arquitetura e camadas | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) |
 | Diagramas Mermaid (fluxos completos) | [docs/diagrams/meet-music-bot-overview.md](docs/diagrams/meet-music-bot-overview.md) |
 | Testes e cobertura | [docs/TEST_REPORT.md](docs/TEST_REPORT.md) |
+| Ideias futuras (backlog) | [TODO/melhorias.md](TODO/melhorias.md) |
 
 ## CI e testes
 
