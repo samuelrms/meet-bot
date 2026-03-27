@@ -1,9 +1,9 @@
-import puppeteer, { type Browser, type Page } from 'puppeteer';
-import { spawn, execSync, type ChildProcess } from 'child_process';
-import fs from 'fs';
-import type { AudioManager } from './audio';
-import { normalizeMeetUrl } from './urls';
-import type { InjectAudioResult } from './types';
+import puppeteer, { type Browser, type Page } from "puppeteer";
+import { spawn, execSync, type ChildProcess } from "child_process";
+import fs from "fs";
+import type { AudioManager } from "./audio";
+import { normalizeMeetUrl } from "./urls";
+import type { InjectAudioResult } from "./types";
 
 export interface MeetBotOptions {
   sourceName: string;
@@ -21,8 +21,13 @@ export class MeetBot {
   page: Page | null = null;
   inMeeting = false;
   private _xvfb: ChildProcess | null = null;
-  private readonly _display = ':99';
-  constructor({ sourceName, sinkName, guestName = 'Music Bot', audioManager = null }: MeetBotOptions) {
+  private readonly _display = ":99";
+  constructor({
+    sourceName,
+    sinkName,
+    guestName = "Music Bot",
+    audioManager = null,
+  }: MeetBotOptions) {
     this.sourceName = sourceName;
     this.sinkName = sinkName;
     this.guestName = guestName;
@@ -33,9 +38,10 @@ export class MeetBot {
     await this._startXvfb();
 
     const chromePath = this._findChrome();
-    const uid = typeof process.getuid === 'function' ? process.getuid() : '';
+    const uid = typeof process.getuid === "function" ? process.getuid() : "";
     const pulseServer =
-      process.env.PULSE_SERVER || (uid ? `unix:/run/user/${uid}/pulse/native` : undefined);
+      process.env.PULSE_SERVER ||
+      (uid ? `unix:/run/user/${uid}/pulse/native` : undefined);
 
     this.browser = await puppeteer.launch({
       executablePath: chromePath,
@@ -43,20 +49,20 @@ export class MeetBot {
       defaultViewport: { width: 1280, height: 720 },
       args: [
         `--display=${this._display}`,
-        '--use-fake-ui-for-media-stream',
-        '--no-sandbox',
-        '--disable-setuid-sandbox',
-        '--disable-dev-shm-usage',
-        '--disable-blink-features=AutomationControlled',
-        '--window-size=1280,720',
-        '--alsa-input-device=pulse',
-        '--alsa-output-device=pulse',
-        '--disable-webrtc-hw-encoding',
-        '--disable-webrtc-hw-decoding',
-        '--disable-features=WebRtcApmInAudioService,ChromeWideEchoCancellation,WebRtcHideLocalIpsWithMdns,WebRtcAllowInputVolumeAdjustment,AudioServiceOutOfProcess',
-        '--autoplay-policy=no-user-gesture-required',
-        '--disable-web-security',
-        '--allow-running-insecure-content',
+        "--use-fake-ui-for-media-stream",
+        "--no-sandbox",
+        "--disable-setuid-sandbox",
+        "--disable-dev-shm-usage",
+        "--disable-blink-features=AutomationControlled",
+        "--window-size=1280,720",
+        "--alsa-input-device=pulse",
+        "--alsa-output-device=pulse",
+        "--disable-webrtc-hw-encoding",
+        "--disable-webrtc-hw-decoding",
+        "--disable-features=WebRtcApmInAudioService,ChromeWideEchoCancellation,WebRtcHideLocalIpsWithMdns,WebRtcAllowInputVolumeAdjustment,AudioServiceOutOfProcess",
+        "--autoplay-policy=no-user-gesture-required",
+        "--disable-web-security",
+        "--allow-running-insecure-content",
       ],
       env: {
         ...process.env,
@@ -65,7 +71,7 @@ export class MeetBot {
         PULSE_SINK: this.sinkName,
         ...(pulseServer ? { PULSE_SERVER: pulseServer } : {}),
       },
-      ignoreDefaultArgs: ['--enable-automation'],
+      ignoreDefaultArgs: ["--enable-automation"],
     });
 
     this.page = await this.browser.newPage();
@@ -73,26 +79,33 @@ export class MeetBot {
     await this.page.setBypassCSP(true);
 
     await this.page.evaluateOnNewDocument(() => {
-      Object.defineProperty(navigator, 'webdriver', { get: () => undefined });
+      Object.defineProperty(navigator, "webdriver", { get: () => undefined });
     });
 
     await this.page.evaluateOnNewDocument(() => {
       window.__botPeerConnections = [];
       const _OrigPC = window.RTCPeerConnection;
 
-      window.RTCPeerConnection = function (config: RTCConfiguration | undefined) {
+      window.RTCPeerConnection = function (
+        config: RTCConfiguration | undefined,
+      ) {
         const pc = new _OrigPC(config);
         window.__botPeerConnections.push(pc);
         return pc;
       } as unknown as typeof window.RTCPeerConnection;
       window.RTCPeerConnection.prototype = _OrigPC.prototype;
-      window.RTCPeerConnection.generateCertificate = _OrigPC.generateCertificate;
+      window.RTCPeerConnection.generateCertificate =
+        _OrigPC.generateCertificate;
 
-      const origGUM = navigator.mediaDevices.getUserMedia.bind(navigator.mediaDevices);
-      navigator.mediaDevices.getUserMedia = async function (constraints?: MediaStreamConstraints) {
+      const origGUM = navigator.mediaDevices.getUserMedia.bind(
+        navigator.mediaDevices,
+      );
+      navigator.mediaDevices.getUserMedia = async function (
+        constraints?: MediaStreamConstraints,
+      ) {
         const c = constraints ?? { audio: true };
         if (c.audio) {
-          const base = typeof c.audio === 'object' ? c.audio : {};
+          const base = typeof c.audio === "object" ? c.audio : {};
           c.audio = {
             ...base,
             echoCancellation: false,
@@ -113,7 +126,10 @@ export class MeetBot {
     });
 
     const ctx = this.browser.defaultBrowserContext();
-    await ctx.overridePermissions('https://meet.google.com', ['microphone', 'notifications']);
+    await ctx.overridePermissions("https://meet.google.com", [
+      "microphone",
+      "notifications",
+    ]);
 
     return this;
   }
@@ -142,9 +158,9 @@ export class MeetBot {
         // passa pelo APM (noise suppression, echo cancellation,
         // AGC) do Chrome — é tratada como áudio sintético.
         const ctx = new AudioContext({ sampleRate: 48000 });
-        const audio = document.createElement('audio');
+        const audio = document.createElement("audio");
         audio.src = `http://127.0.0.1:${p}/stream`;
-        audio.crossOrigin = 'anonymous';
+        audio.crossOrigin = "anonymous";
         audio.volume = 1;
         document.body.appendChild(audio);
 
@@ -159,15 +175,19 @@ export class MeetBot {
         await new Promise<void>((r) => setTimeout(r, 500));
 
         const track = dest.stream.getAudioTracks()[0];
-        if (!track) return { ok: false, error: 'sem audio track no createMediaStreamDestination' };
+        if (!track)
+          return {
+            ok: false,
+            error: "sem audio track no createMediaStreamDestination",
+          };
 
         // Substituir tracks de áudio em todas as PeerConnections
         const pcs = window.__botPeerConnections || [];
         let replaced = 0;
         for (const pc of pcs) {
-          if (pc.connectionState === 'closed') continue;
+          if (pc.connectionState === "closed") continue;
           for (const sender of pc.getSenders()) {
-            if (sender.track && sender.track.kind === 'audio') {
+            if (sender.track && sender.track.kind === "audio") {
               await sender.replaceTrack(track);
               replaced++;
             }
@@ -187,12 +207,16 @@ export class MeetBot {
   }
 
   async join(meetUrl: string): Promise<boolean> {
-    if (!this.page) throw new Error('Browser não iniciado. Chame launch() primeiro.');
+    if (!this.page)
+      throw new Error("Browser não iniciado. Chame launch() primeiro.");
 
     const cleanUrl = normalizeMeetUrl(meetUrl);
     console.log(`Abrindo: ${cleanUrl}`);
 
-    await this.page.goto(cleanUrl, { waitUntil: 'domcontentloaded', timeout: 30000 });
+    await this.page.goto(cleanUrl, {
+      waitUntil: "domcontentloaded",
+      timeout: 30000,
+    });
     await this._sleep(3000);
 
     await this._dismissCameraPopup();
@@ -257,12 +281,14 @@ export class MeetBot {
 
   private async _startXvfb(): Promise<void> {
     try {
-      execSync('which Xvfb', { stdio: 'ignore' });
+      execSync("which Xvfb", { stdio: "ignore" });
     } catch {
-      throw new Error('Xvfb não encontrado. Instale com:\n  sudo apt install xvfb');
+      throw new Error(
+        "Xvfb não encontrado. Instale com:\n  sudo apt install xvfb",
+      );
     }
     try {
-      execSync(`pkill -f "Xvfb ${this._display}"`, { stdio: 'ignore' });
+      execSync(`pkill -f "Xvfb ${this._display}"`, { stdio: "ignore" });
     } catch {
       /* ignore */
     }
@@ -270,11 +296,21 @@ export class MeetBot {
 
     return new Promise((resolve, reject) => {
       this._xvfb = spawn(
-        'Xvfb',
-        [this._display, '-screen', '0', '1280x720x24', '-ac', '+extension', 'GLX', '+render', '-noreset'],
-        { stdio: 'ignore' }
+        "Xvfb",
+        [
+          this._display,
+          "-screen",
+          "0",
+          "1280x720x24",
+          "-ac",
+          "+extension",
+          "GLX",
+          "+render",
+          "-noreset",
+        ],
+        { stdio: "ignore" },
       );
-      this._xvfb.on('error', (e) => reject(new Error(`Xvfb: ${e.message}`)));
+      this._xvfb.on("error", (e) => reject(new Error(`Xvfb: ${e.message}`)));
       setTimeout(resolve, 1000);
     });
   }
@@ -294,9 +330,15 @@ export class MeetBot {
     if (!this.page) return;
     try {
       const clicked = await this.page.evaluate(() => {
-        const kw = ['continue without camera', 'continuar sem câmera', 'continuar sem camera'];
-        for (const el of document.querySelectorAll('button, a')) {
-          if (kw.some((k) => el.textContent?.trim().toLowerCase().includes(k))) {
+        const kw = [
+          "continue without camera",
+          "continuar sem câmera",
+          "continuar sem camera",
+        ];
+        for (const el of document.querySelectorAll("button, a")) {
+          if (
+            kw.some((k) => el.textContent?.trim().toLowerCase().includes(k))
+          ) {
             (el as HTMLElement).click();
             return true;
           }
@@ -306,9 +348,15 @@ export class MeetBot {
       if (!clicked) {
         await this._sleep(1500);
         await this.page.evaluate(() => {
-          const kw = ['continue without camera', 'continuar sem câmera', 'continuar sem camera'];
-          for (const el of document.querySelectorAll('button, a')) {
-            if (kw.some((k) => el.textContent?.trim().toLowerCase().includes(k))) {
+          const kw = [
+            "continue without camera",
+            "continuar sem câmera",
+            "continuar sem camera",
+          ];
+          for (const el of document.querySelectorAll("button, a")) {
+            if (
+              kw.some((k) => el.textContent?.trim().toLowerCase().includes(k))
+            ) {
               (el as HTMLElement).click();
               return;
             }
@@ -346,10 +394,22 @@ export class MeetBot {
     if (!this.page) return;
     try {
       await this.page.evaluate(() => {
-        for (const btn of document.querySelectorAll('button')) {
-          const label = (btn.getAttribute('aria-label') || '').toLowerCase();
-          if (!(label.includes('camera') || label.includes('câmera') || label.includes('video'))) continue;
-          if (label.includes('desativar') || label.includes('turn off') || label.includes('stop')) btn.click();
+        for (const btn of document.querySelectorAll("button")) {
+          const label = (btn.getAttribute("aria-label") || "").toLowerCase();
+          if (
+            !(
+              label.includes("camera") ||
+              label.includes("câmera") ||
+              label.includes("video")
+            )
+          )
+            continue;
+          if (
+            label.includes("desativar") ||
+            label.includes("turn off") ||
+            label.includes("stop")
+          )
+            btn.click();
         }
       });
     } catch {
@@ -361,10 +421,16 @@ export class MeetBot {
     if (!this.page) return;
     try {
       await this.page.evaluate(() => {
-        for (const btn of document.querySelectorAll('button')) {
-          const label = (btn.getAttribute('aria-label') || '').toLowerCase();
-          if (!(label.includes('microphone') || label.includes('microfone'))) continue;
-          if (label.includes('ativar') || label.includes('unmute') || label.includes('turn on mic')) btn.click();
+        for (const btn of document.querySelectorAll("button")) {
+          const label = (btn.getAttribute("aria-label") || "").toLowerCase();
+          if (!(label.includes("microphone") || label.includes("microfone")))
+            continue;
+          if (
+            label.includes("ativar") ||
+            label.includes("unmute") ||
+            label.includes("turn on mic")
+          )
+            btn.click();
         }
       });
     } catch {
@@ -379,11 +445,11 @@ export class MeetBot {
         const devices = await navigator.mediaDevices.enumerateDevices();
         const mic = devices.find(
           (d) =>
-            d.kind === 'audioinput' &&
+            d.kind === "audioinput" &&
             (d.label.toLowerCase().includes(targetLabel.toLowerCase()) ||
-              d.label.toLowerCase().includes('meetmusicbot') ||
-              d.label.toLowerCase().includes('monitor') ||
-              d.label.toLowerCase().includes('virtual'))
+              d.label.toLowerCase().includes("meetmusicbot") ||
+              d.label.toLowerCase().includes("monitor") ||
+              d.label.toLowerCase().includes("virtual")),
         );
         if (!mic) return;
         const stream = await navigator.mediaDevices.getUserMedia({
@@ -407,7 +473,7 @@ export class MeetBot {
       // Tentar abrir Settings → Audio → desligar Noise cancellation
       // 1. Clicar no botão "More options" (⋮)
       const moreBtn = await this.page.$(
-        '[aria-label*="More options"], [aria-label*="Mais opções"], [data-tooltip*="More options"], [data-tooltip*="Mais opções"]'
+        '[aria-label*="More options"], [aria-label*="Mais opções"], [data-tooltip*="More options"], [data-tooltip*="Mais opções"]',
       );
       if (!moreBtn) return;
       await moreBtn.click();
@@ -415,9 +481,11 @@ export class MeetBot {
 
       // 2. Clicar em "Settings" / "Configurações"
       const clicked = await this.page.evaluate(() => {
-        const kw = ['settings', 'configurações', 'configuracoes'];
-        for (const el of document.querySelectorAll('[role="menuitem"], li, div[role="option"]')) {
-          const text = el.textContent?.trim().toLowerCase() || '';
+        const kw = ["settings", "configurações", "configuracoes"];
+        for (const el of document.querySelectorAll(
+          '[role="menuitem"], li, div[role="option"]',
+        )) {
+          const text = el.textContent?.trim().toLowerCase() || "";
           if (kw.some((k) => text.includes(k))) {
             (el as HTMLElement).click();
             return true;
@@ -430,11 +498,11 @@ export class MeetBot {
 
       // 3. Navegar para aba "Audio" / "Áudio"
       await this.page.evaluate(() => {
-        const kw = ['audio', 'áudio'];
+        const kw = ["audio", "áudio"];
         for (const el of document.querySelectorAll(
-          '[role="tab"], button, [data-tab-id]'
+          '[role="tab"], button, [data-tab-id]',
         )) {
-          const text = el.textContent?.trim().toLowerCase() || '';
+          const text = el.textContent?.trim().toLowerCase() || "";
           if (kw.some((k) => text === k)) {
             (el as HTMLElement).click();
             return;
@@ -446,18 +514,22 @@ export class MeetBot {
       // 4. Desligar "Noise cancellation" se estiver ativado
       await this.page.evaluate(() => {
         const kw = [
-          'noise cancellation', 'cancelamento de ruído',
-          'noise suppression', 'supressão de ruído',
+          "noise cancellation",
+          "cancelamento de ruído",
+          "noise suppression",
+          "supressão de ruído",
         ];
         // Procurar por label + toggle (switch/checkbox)
-        for (const label of document.querySelectorAll('label, div, span')) {
-          const text = label.textContent?.trim().toLowerCase() || '';
+        for (const label of document.querySelectorAll("label, div, span")) {
+          const text = label.textContent?.trim().toLowerCase() || "";
           if (!kw.some((k) => text.includes(k))) continue;
           // Encontrar o toggle/checkbox mais próximo
-          const parent = label.closest('[role="presentation"], [role="listitem"], div');
+          const parent = label.closest(
+            '[role="presentation"], [role="listitem"], div',
+          );
           if (!parent) continue;
           const toggle = parent.querySelector(
-            '[role="switch"][aria-checked="true"], input[type="checkbox"]:checked, [aria-pressed="true"]'
+            '[role="switch"][aria-checked="true"], input[type="checkbox"]:checked, [aria-pressed="true"]',
           );
           if (toggle) {
             (toggle as HTMLElement).click();
@@ -470,7 +542,7 @@ export class MeetBot {
       // 5. Fechar dialog de settings
       await this.page.evaluate(() => {
         const closeBtn = document.querySelector(
-          '[aria-label="Close"], [aria-label="Fechar"], button[jsname="j6LnEc"]'
+          '[aria-label="Close"], [aria-label="Fechar"], button[jsname="j6LnEc"]',
         );
         if (closeBtn) (closeBtn as HTMLElement).click();
       });
@@ -481,7 +553,11 @@ export class MeetBot {
 
   private async _clickJoinButton(): Promise<boolean> {
     if (!this.page) return false;
-    for (const sel of ['[jsname="Qx7uuf"]', '[jsname="V67aGc"]', 'button[jsaction*="click:TvD9wd"]']) {
+    for (const sel of [
+      '[jsname="Qx7uuf"]',
+      '[jsname="V67aGc"]',
+      'button[jsaction*="click:TvD9wd"]',
+    ]) {
       try {
         await this.page.waitForSelector(sel, { timeout: 4000 });
         await this.page.click(sel);
@@ -492,9 +568,17 @@ export class MeetBot {
     }
     try {
       return await this.page.evaluate(() => {
-        const kw = ['join now', 'ask to join', 'entrar agora', 'pedir para entrar', 'participar'];
-        for (const btn of document.querySelectorAll('button')) {
-          if (kw.some((k) => btn.textContent?.trim().toLowerCase().includes(k))) {
+        const kw = [
+          "join now",
+          "ask to join",
+          "entrar agora",
+          "pedir para entrar",
+          "participar",
+        ];
+        for (const btn of document.querySelectorAll("button")) {
+          if (
+            kw.some((k) => btn.textContent?.trim().toLowerCase().includes(k))
+          ) {
             btn.click();
             return true;
           }
@@ -508,12 +592,12 @@ export class MeetBot {
 
   private _findChrome(): string | undefined {
     for (const p of [
-      '/usr/bin/google-chrome',
-      '/usr/bin/google-chrome-stable',
-      '/usr/bin/chromium-browser',
-      '/usr/bin/chromium',
-      '/snap/bin/chromium',
-      '/usr/bin/brave-browser',
+      "/usr/bin/google-chrome",
+      "/usr/bin/google-chrome-stable",
+      "/usr/bin/chromium-browser",
+      "/usr/bin/chromium",
+      "/snap/bin/chromium",
+      "/usr/bin/brave-browser",
     ]) {
       if (fs.existsSync(p)) return p;
     }

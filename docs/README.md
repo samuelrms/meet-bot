@@ -6,15 +6,15 @@ Projeto de bot de música para Google Meet no Linux: microfone virtual via Pulse
 
 ## Onde encontrar o quê
 
-| Documento | Conteúdo |
-|-----------|----------|
-| [README na raiz do repositório](../README.md) | Visão geral, pré-requisitos, instalação rápida, comandos e diagramas resumidos |
-| [ARCHITECTURE.md](./ARCHITECTURE.md) | Camadas, componentes e fluxos com referência aos diagramas |
-| [diagrams/meet-music-bot-overview.md](./diagrams/meet-music-bot-overview.md) | Fluxogramas e diagramas de sequência em Mermaid |
-| [TEST_REPORT.md](./TEST_REPORT.md) | Como rodar testes e o que é coberto |
-| [changes.md](./changes.md) | Alterações recentes e dependências |
-| [DECISIONS/ADR-20260325-cobertura-e-ci.md](./DECISIONS/ADR-20260325-cobertura-e-ci.md) | Escopo de cobertura e CI |
-| [TODO/melhorias.md](../TODO/melhorias.md) | Backlog sugerido (vídeo, outras plataformas, etc.) |
+| Documento                                                                              | Conteúdo                                                                       |
+| -------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------ |
+| [README na raiz do repositório](../README.md)                                          | Visão geral, pré-requisitos, instalação rápida, comandos e diagramas resumidos |
+| [ARCHITECTURE.md](./ARCHITECTURE.md)                                                   | Camadas, componentes e fluxos com referência aos diagramas                     |
+| [diagrams/meet-music-bot-overview.md](./diagrams/meet-music-bot-overview.md)           | Fluxogramas e diagramas de sequência em Mermaid                                |
+| [TEST_REPORT.md](./TEST_REPORT.md)                                                     | Como rodar testes e o que é coberto                                            |
+| [changes.md](./changes.md)                                                             | Alterações recentes e dependências                                             |
+| [DECISIONS/ADR-20260325-cobertura-e-ci.md](./DECISIONS/ADR-20260325-cobertura-e-ci.md) | Escopo de cobertura e CI                                                       |
+| [TODO/melhorias.md](../TODO/melhorias.md)                                              | Backlog sugerido (vídeo, outras plataformas, etc.)                             |
 
 ## Comandos (referência textual)
 

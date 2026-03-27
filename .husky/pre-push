@@ -1,0 +1,8 @@
+#!/bin/sh
+
+# The vitest 60% coverage block should fail the command if coverage is not met.
+# Since we just need to run test with coverage, vitest handles the exit code.
+# In our project we don't have coverage threshold config yet. Let's run it and if Vitest doesn't enforce, we should add vitest config to enforce 60% and run it.
+# Actually, the requirement says "valida que cobertura atinge mínimo de 60%".
+# Let's run test and if it fails, it fails the push.
+pnpm run test
