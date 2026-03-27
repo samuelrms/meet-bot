@@ -3,12 +3,40 @@
   "version": "1.0.0",
   "description": "Bot de música para Google Meet via PulseAudio + Puppeteer",
   "main": "dist/index.js",
+  "author": "Samuel Ramos <samuelaoliveiraramos@gmail.com>",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/samuelrms/meet-bot.git"
+  },
+  "bugs": {
+    "url": "https://github.com/samuelrms/meet-bot/issues"
+  },
+  "homepage": "https://github.com/samuelrms/meet-bot#readme",
+  "keywords": [
+    "meet",
+    "music",
+    "bot",
+    "google-meet",
+    "puppeteer",
+    "pulseaudio",
+    "pipewire",
+    "youtube",
+    "webrtc"
+  ],
+  "packageManager": "pnpm@10.0.0",
   "scripts": {
     "build": "tsc",
     "start": "tsc && node dist/index.js",
     "setup": "bash setup.sh",
     "test": "vitest run --coverage",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "lint": "eslint src/ tests/ && markdownlint-cli2 '**/*.md' '#node_modules'",
+    "lint:fix": "eslint src/ tests/ --fix && markdownlint-cli2 '**/*.md' '#node_modules' --fix",
+    "format": "prettier --check .",
+    "format:fix": "prettier --write .",
+    "preinstall": "npx only-allow pnpm",
+    "prepare": "husky"
   },
   "dependencies": {
     "chalk": "^4.1.2",
@@ -18,9 +46,15 @@
     "node": ">=18.0.0"
   },
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
     "@types/node": "^25.5.0",
     "@vitest/coverage-v8": "^4.1.1",
+    "eslint": "^10.1.0",
+    "husky": "^9.1.7",
+    "markdownlint-cli2": "^0.22.0",
+    "prettier": "^3.8.1",
     "typescript": "^6.0.2",
+    "typescript-eslint": "^8.57.2",
     "vitest": "^4.1.1"
   }
 }

@@ -1,5 +1,5 @@
-import { EventEmitter } from 'events';
-import type { QueueItem } from './types';
+import { EventEmitter } from "events";
+import type { QueueItem } from "./types";
 
 export class MusicQueue extends EventEmitter {
   items: QueueItem[] = [];
@@ -8,7 +8,7 @@ export class MusicQueue extends EventEmitter {
 
   add(item: QueueItem): void {
     this.items.push(item);
-    this.emit('added', item, this.items.length);
+    this.emit("added", item, this.items.length);
   }
 
   shift(): QueueItem | null {

@@ -1,0 +1,12 @@
+#!/bin/sh
+
+# Regex to validate Conventional Commits
+commit_regex='^(build|chore|ci|docs|feat|fix|perf|refactor|revert|style|test)(\([a-z0-9_-]+\))?!?: '
+
+if ! grep -iqE "$commit_regex" "$1"; then
+    echo "Erro: A mensagem do commit não segue o formato Conventional Commits."
+    echo "Formato esperado: <tipo>[escopo opcional]: <descrição>"
+    echo "Exemplos: feat: adiciona login, fix(ui): corrige botão redondo"
+    echo "Tipos válidos: build, chore, ci, docs, feat, fix, perf, refactor, revert, style, test"
+    exit 1
+fi

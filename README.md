@@ -1,16 +1,20 @@
 # Meet Music Bot
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![CI](https://github.com/samuelrms/meet-bot/actions/workflows/ci.yml/badge.svg)](https://github.com/samuelrms/meet-bot/actions/workflows/ci.yml)
+[![Node.js Version](https://img.shields.io/badge/node-%3E%3D%2018-brightgreen.svg)](https://nodejs.org/)
+
 Bot de música para **Google Meet** no Linux: microfone virtual (PulseAudio/PipeWire), **Puppeteer**, **yt-dlp** e **ffmpeg** para tocar áudio do YouTube na sala em que você participar.
 
 ## Documentação
 
-| Recurso | Local |
-|--------|--------|
-| Índice da documentação | [docs/README.md](docs/README.md) |
-| Arquitetura e camadas | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) |
+| Recurso                              | Local                                                                                |
+| ------------------------------------ | ------------------------------------------------------------------------------------ |
+| Índice da documentação               | [docs/README.md](docs/README.md)                                                     |
+| Arquitetura e camadas                | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)                                         |
 | Diagramas Mermaid (fluxos completos) | [docs/diagrams/meet-music-bot-overview.md](docs/diagrams/meet-music-bot-overview.md) |
-| Testes e cobertura | [docs/TEST_REPORT.md](docs/TEST_REPORT.md) |
-| Ideias futuras (backlog) | [TODO/melhorias.md](TODO/melhorias.md) |
+| Testes e cobertura                   | [docs/TEST_REPORT.md](docs/TEST_REPORT.md)                                           |
+| Ideias futuras (backlog)             | [TODO/melhorias.md](TODO/melhorias.md)                                               |
 
 ## CI e testes
 
@@ -77,25 +81,25 @@ O script **start** compila o TypeScript e executa `dist/index.js`. Para só comp
 
 ## Comandos da CLI
 
-| Comando | Descrição |
-|--------|-----------|
-| `!join <url ou código>` | Entra em uma sala do Meet |
-| `!name <nome>` | nome de visitante |
-| `!play <url ou nome>` | Toca música (adiciona à fila) |
-| `!skip` | Pula a música atual |
-| `!pause` | Pausa |
-| `!stop` | Para e limpa a fila |
-| `!queue` | Mostra a fila |
-| `!loop` | Ativa/desativa loop |
-| `!clear` | Limpa a fila |
-| `!volume <0-200>` | Volume |
-| `!leave` | Sai da sala |
-| `!help` | Ajuda |
-| `!quit` | Encerra o bot |
+| Comando                 | Descrição                     |
+| ----------------------- | ----------------------------- |
+| `!join <url ou código>` | Entra em uma sala do Meet     |
+| `!name <nome>`          | nome de visitante             |
+| `!play <url ou nome>`   | Toca música (adiciona à fila) |
+| `!skip`                 | Pula a música atual           |
+| `!pause`                | Pausa                         |
+| `!stop`                 | Para e limpa a fila           |
+| `!queue`                | Mostra a fila                 |
+| `!loop`                 | Ativa/desativa loop           |
+| `!clear`                | Limpa a fila                  |
+| `!volume <0-200>`       | Volume                        |
+| `!leave`                | Sai da sala                   |
+| `!help`                 | Ajuda                         |
+| `!quit`                 | Encerra o bot                 |
 
 ### Exemplos
 
-```
+```bash
 !join https://meet.google.com/abc-defg-hij
 !play https://www.youtube.com/watch?v=dQw4w9WgXcQ
 !play lo-fi hip hop radio
@@ -117,3 +121,10 @@ O script **start** compila o TypeScript e executa `dist/index.js`. Para só comp
 **Falha ao iniciar o navegador** — instalar Chromium/Chrome, por exemplo via pacote `chromium-browser` ou Google Chrome.
 
 **Sem som no Meet** — em `pavucontrol`, confira o sink **MeetMusicBot** para o Chrome e o microfone **MeetMusicBotSrc** no Meet.
+
+## Comunidade open source
+
+- **[Contribuindo (CONTRIBUTING)](CONTRIBUTING.md):** Veja nosso guia completo sobre como rodar testes, configurar o Husky, usar _Conventional Commits_ e enviar PRs (que exigem no mínimo 60% de cobertura de testes).
+- **[Código de Conduta](CODE_OF_CONDUCT.md):** Esperamos que todos os membros da nossa comunidade sigam este código.
+- **[Política de Segurança](SECURITY.md):** Instruções sobre vulnerabilidades.
+- **[Licença (MIT)](LICENSE):** O código é licenciado pela Samuel Ramos. Consulte a licença para mais termos.

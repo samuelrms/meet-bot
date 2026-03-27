@@ -9,6 +9,7 @@ Como pré-requisito, faremos a **Reestruturação Monorepo** para separar implem
 Código implementado. Pendente apenas `pnpm install` + `pnpm run build` + `pnpm run test` quando a rede normalizar.
 
 Mudanças feitas:
+
 - Chrome flags `WebRtcApmInAudioService` e `ChromeWideEchoCancellation`
 - `injectAudioStream` reescrito com Web Audio API (`AudioContext` → `createMediaStreamDestination`)
 - `_disableNoiseCancellation()` automático via Puppeteer
@@ -20,6 +21,7 @@ Mudanças feitas:
 ## Fase 1.2 — Estrutura Monorepo (Preparação)
 
 ### Conceito
+
 Antes de criar o bot do Discord ou injetar código complexo de vídeo, dividiremos o repósitorio. Hospedaremos o core lógico separado das plataformas, sob uma estrutura que espelhe a futura migração para Rust.
 
 ### Estrutura de Pastas
@@ -31,9 +33,9 @@ meet-bot/
 │   ├── meet/              # Bot do Meet (Puppeteer, Web Audio API, chat)
 │   └── discord/           # Bot do Discord (discord.js, streaming de mídia)
 ├── rust/                  # (TODO futuro) Implementações em Rust
-│   ├── core/              
-│   ├── meet/              
-│   └── discord/           
+│   ├── core/
+│   ├── meet/
+│   └── discord/
 ├── docs/
 └── TODO/
 ```
@@ -45,6 +47,7 @@ meet-bot/
 ## Fase 1.5 — Comandos via Chat do Meet
 
 ### Conceito
+
 Permitir que os usuários enviem comandos (ex: `!play URL`, `!skip`, `!volume 50`) diretamente **pelo chat público do Google Meet**. O bot lerá as mensagens, executará os comandos e enviará feedback de volta no chat.
 
 ### Proposed Changes
@@ -108,19 +111,19 @@ Novo `VideoManager` com responsabilidades:
 export class VideoManager {
   // Setup do v4l2loopback
   async setup(): Promise<boolean>;
-  
+
   // Tocar vídeo (YouTube URL ou arquivo local) no device virtual
   playVideo(url: string): Promise<void>;
-  
+
   // Exibir imagem estática (URL ou path) no device virtual
   showImage(path: string): Promise<void>;
-  
+
   // Parar vídeo/imagem
   stop(): void;
-  
+
   // Cleanup
   async teardown(): Promise<void>;
-  
+
   get devicePath(): string; // ex: /dev/video2
 }
 ```
@@ -128,6 +131,7 @@ export class VideoManager {
 **Implementação-chave:**
 
 1. **Setup v4l2loopback:**
+
 ```bash
 sudo modprobe v4l2loopback \
   exclusive_caps=1 \
@@ -135,14 +139,16 @@ sudo modprobe v4l2loopback \
   card_label="MeetMusicBotCam"
 ```
 
-2. **Enviar vídeo (yt-dlp → ffmpeg → v4l2loopback):**
+1. **Enviar vídeo (yt-dlp → ffmpeg → v4l2loopback):**
+
 ```bash
 yt-dlp -o - URL | ffmpeg -i pipe:0 \
   -vf "scale=1280:720,format=yuv420p" \
   -f v4l2 /dev/video10
 ```
 
-3. **Enviar imagem estática (loop infinito):**
+1. **Enviar imagem estática (loop infinito):**
+
 ```bash
 ffmpeg -loop 1 -i image.png \
   -vf "scale=1280:720,format=yuv420p" \
@@ -163,17 +169,18 @@ ffmpeg -loop 1 -i image.png \
 
 Novos comandos CLI:
 
-| Comando | Descrição |
-|---------|-----------|
+| Comando                 | Descrição                               |
+| ----------------------- | --------------------------------------- |
 | `!video <url ou busca>` | Toca vídeo do YouTube na webcam virtual |
-| `!image <url ou path>` | Exibe imagem estática na webcam |
-| `!videostop` | Para vídeo/imagem e desliga a câmera |
+| `!image <url ou path>`  | Exibe imagem estática na webcam         |
+| `!videostop`            | Para vídeo/imagem e desliga a câmera    |
 
 ---
 
 #### [setup.sh](https://github.com/samuelrms/meet-bot/blob/main/setup.sh)
 
 Adicionar instalação de:
+
 - `v4l2loopback-dkms` (módulo kernel)
 - `v4l2loopback-utils` (ferramentas auxiliares)
 
@@ -191,7 +198,7 @@ Adicionar instalação de:
 
 ### Conceito
 
-Bot Discord separado (`node/discord/`) que reutiliza o **core compartilhado** (`node/core/`). 
+Bot Discord separado (`node/discord/`) que reutiliza o **core compartilhado** (`node/core/`).
 O Discord suporta streaming de áudio nativamente por bots (via `@discordjs/voice`), mas **streaming de vídeo por bots requer libs específicas** (já que a biblioteca oficial foca apenas em áudio). Usaremos soluções WebRTC/UDP customizadas para Discord (como `discord-video-stream` ou similar) para espelhar as capacidades de "Webcam" e "Vídeo" do Meet no Discord.
 
 ### Arquitetura
@@ -215,7 +222,7 @@ flowchart TB
   end
   node_core --> node_meet
   node_core --> node_discord
-  
+
   MB -.-> V4L
   DI --> DA
   DI --> DV
@@ -247,6 +254,7 @@ node/discord/
 #### node/discord/src/video.ts
 
 Para suportar `/video` e `/image` no Discord:
+
 - O client enviará pacotes UDP/RTP com frames de vídeo empacotados pelo `ffmpeg`.
 - A comunidade mantém pacotes como `discord-video-stream` que permitem a "Ativação da Câmera" ou "Compartilhamento de Tela" por bots não-oficiais / self-bots com UDP payload mapping.
 - Se a API bloquear bots regulares de abrir a "câmera", a alternativa de fallback será que o bot envie os vídeos curtos/imagens diretamente no chat do Discord (upload/embed) enquanto toca o áudio no voice channel.
@@ -255,14 +263,14 @@ Para suportar `/video` e `/image` no Discord:
 
 #### Funcionalidades em `node/discord`
 
-| Slash Command | Tipo de Mídia | Descrição |
-|---------------|---------------|-----------|
-| `/play <query>` | Áudio | Toca áudio no Voice Channel |
-| `/video <query>` | Vídeo | Transmite vídeo (se suportado via lib) ou toca áudio + envia link no chat |
-| `/image <url>` | Imagem | Ativa câmera virtual discord / Embed da imagem no chat |
-| `/skip` | Controle | Pula fila compartilhada |
-| `/queue` | Info | Mostra fila (embed) |
-| `/nowplaying` | Info | Mostra thumbnail, uploader e tempo |
+| Slash Command    | Tipo de Mídia | Descrição                                                                 |
+| ---------------- | ------------- | ------------------------------------------------------------------------- |
+| `/play <query>`  | Áudio         | Toca áudio no Voice Channel                                               |
+| `/video <query>` | Vídeo         | Transmite vídeo (se suportado via lib) ou toca áudio + envia link no chat |
+| `/image <url>`   | Imagem        | Ativa câmera virtual discord / Embed da imagem no chat                    |
+| `/skip`          | Controle      | Pula fila compartilhada                                                   |
+| `/queue`         | Info          | Mostra fila (embed)                                                       |
+| `/nowplaying`    | Info          | Mostra thumbnail, uploader e tempo                                        |
 
 ---
 
