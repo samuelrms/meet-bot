@@ -53,7 +53,7 @@ export class MeetBot {
         '--alsa-output-device=pulse',
         '--disable-webrtc-hw-encoding',
         '--disable-webrtc-hw-decoding',
-        '--disable-features=WebRtcHideLocalIpsWithMdns,WebRtcAllowInputVolumeAdjustment,AudioServiceOutOfProcess',
+        '--disable-features=WebRtcApmInAudioService,ChromeWideEchoCancellation,WebRtcHideLocalIpsWithMdns,WebRtcAllowInputVolumeAdjustment,AudioServiceOutOfProcess',
         '--autoplay-policy=no-user-gesture-required',
         '--disable-web-security',
         '--allow-running-insecure-content',
@@ -123,56 +123,45 @@ export class MeetBot {
 
     const result = await this.page.evaluate(async (p: number) => {
       try {
+        // Limpar injeção anterior
         if (window.__botAudioEl) {
           window.__botAudioEl.pause();
           window.__botAudioEl.remove();
         }
-        if (window.__botStreamReader) {
+        if (window.__botAudioCtx) {
           try {
-            await window.__botStreamReader.cancel();
+            await window.__botAudioCtx.close();
           } catch {
             /* ignore */
           }
         }
 
-        const ms = new MediaSource();
+        // ── Web Audio API bypass ─────────────────────────────────
+        // Criar AudioContext → MediaElementSource → Destination
+        // A track resultante de createMediaStreamDestination NÃO
+        // passa pelo APM (noise suppression, echo cancellation,
+        // AGC) do Chrome — é tratada como áudio sintético.
+        const ctx = new AudioContext({ sampleRate: 48000 });
         const audio = document.createElement('audio');
-        audio.src = URL.createObjectURL(ms);
+        audio.src = `http://127.0.0.1:${p}/stream`;
         audio.crossOrigin = 'anonymous';
         audio.volume = 1;
         document.body.appendChild(audio);
 
-        await new Promise<void>((r) => ms.addEventListener('sourceopen', () => r(), { once: true }));
+        // Conectar: audio → AudioContext → MediaStreamDestination
+        const source = ctx.createMediaElementSource(audio);
+        const dest = ctx.createMediaStreamDestination();
+        source.connect(dest);
+        // Conectar também aos speakers para monitoramento local
+        source.connect(ctx.destination);
 
-        const sb = ms.addSourceBuffer('audio/mpeg');
-
-        const res = await fetch(`http://127.0.0.1:${p}/stream`);
-        const reader = res.body!.getReader();
-        window.__botStreamReader = reader;
-
-        const pump = async (): Promise<void> => {
-          try {
-            while (true) {
-              const { done, value } = await reader.read();
-              if (done) break;
-              if (sb.updating) {
-                await new Promise<void>((r) => sb.addEventListener('updateend', () => r(), { once: true }));
-              }
-              sb.appendBuffer(value);
-            }
-          } catch {
-            /* ignore */
-          }
-        };
-        void pump();
-
-        await new Promise<void>((r) => setTimeout(r, 800));
         await audio.play();
+        await new Promise<void>((r) => setTimeout(r, 500));
 
-        const stream = (audio as HTMLAudioElement & { captureStream(): MediaStream }).captureStream();
-        const track = stream.getAudioTracks()[0];
-        if (!track) return { ok: false, error: 'sem audio track no captureStream' };
+        const track = dest.stream.getAudioTracks()[0];
+        if (!track) return { ok: false, error: 'sem audio track no createMediaStreamDestination' };
 
+        // Substituir tracks de áudio em todas as PeerConnections
         const pcs = window.__botPeerConnections || [];
         let replaced = 0;
         for (const pc of pcs) {
@@ -186,6 +175,7 @@ export class MeetBot {
         }
 
         window.__botAudioEl = audio;
+        window.__botAudioCtx = ctx;
         return { ok: true, replaced, pcs: pcs.length };
       } catch (e) {
         const err = e as Error;
@@ -222,6 +212,7 @@ export class MeetBot {
       await this._forceCameraOff();
       await this._ensureMicOn();
       await this._selectVirtualMic();
+      await this._disableNoiseCancellation();
       if (this.audioManager) {
         await this._sleep(1000);
         await this.audioManager.moveChromeToBotSource();
@@ -410,6 +401,84 @@ export class MeetBot {
     }
   }
 
+  private async _disableNoiseCancellation(): Promise<void> {
+    if (!this.page) return;
+    try {
+      // Tentar abrir Settings → Audio → desligar Noise cancellation
+      // 1. Clicar no botão "More options" (⋮)
+      const moreBtn = await this.page.$(
+        '[aria-label*="More options"], [aria-label*="Mais opções"], [data-tooltip*="More options"], [data-tooltip*="Mais opções"]'
+      );
+      if (!moreBtn) return;
+      await moreBtn.click();
+      await this._sleep(800);
+
+      // 2. Clicar em "Settings" / "Configurações"
+      const clicked = await this.page.evaluate(() => {
+        const kw = ['settings', 'configurações', 'configuracoes'];
+        for (const el of document.querySelectorAll('[role="menuitem"], li, div[role="option"]')) {
+          const text = el.textContent?.trim().toLowerCase() || '';
+          if (kw.some((k) => text.includes(k))) {
+            (el as HTMLElement).click();
+            return true;
+          }
+        }
+        return false;
+      });
+      if (!clicked) return;
+      await this._sleep(1000);
+
+      // 3. Navegar para aba "Audio" / "Áudio"
+      await this.page.evaluate(() => {
+        const kw = ['audio', 'áudio'];
+        for (const el of document.querySelectorAll(
+          '[role="tab"], button, [data-tab-id]'
+        )) {
+          const text = el.textContent?.trim().toLowerCase() || '';
+          if (kw.some((k) => text === k)) {
+            (el as HTMLElement).click();
+            return;
+          }
+        }
+      });
+      await this._sleep(800);
+
+      // 4. Desligar "Noise cancellation" se estiver ativado
+      await this.page.evaluate(() => {
+        const kw = [
+          'noise cancellation', 'cancelamento de ruído',
+          'noise suppression', 'supressão de ruído',
+        ];
+        // Procurar por label + toggle (switch/checkbox)
+        for (const label of document.querySelectorAll('label, div, span')) {
+          const text = label.textContent?.trim().toLowerCase() || '';
+          if (!kw.some((k) => text.includes(k))) continue;
+          // Encontrar o toggle/checkbox mais próximo
+          const parent = label.closest('[role="presentation"], [role="listitem"], div');
+          if (!parent) continue;
+          const toggle = parent.querySelector(
+            '[role="switch"][aria-checked="true"], input[type="checkbox"]:checked, [aria-pressed="true"]'
+          );
+          if (toggle) {
+            (toggle as HTMLElement).click();
+            return;
+          }
+        }
+      });
+      await this._sleep(500);
+
+      // 5. Fechar dialog de settings
+      await this.page.evaluate(() => {
+        const closeBtn = document.querySelector(
+          '[aria-label="Close"], [aria-label="Fechar"], button[jsname="j6LnEc"]'
+        );
+        if (closeBtn) (closeBtn as HTMLElement).click();
+      });
+    } catch {
+      /* ignore — noise cancellation toggle is best-effort */
+    }
+  }
+
   private async _clickJoinButton(): Promise<boolean> {
     if (!this.page) return false;
     for (const sel of ['[jsname="Qx7uuf"]', '[jsname="V67aGc"]', 'button[jsaction*="click:TvD9wd"]']) {
@@ -460,6 +529,6 @@ declare global {
   interface Window {
     __botPeerConnections: RTCPeerConnection[];
     __botAudioEl?: HTMLAudioElement;
-    __botStreamReader?: ReadableStreamDefaultReader<Uint8Array>;
+    __botAudioCtx?: AudioContext;
   }
 }

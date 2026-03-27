@@ -1,6 +1,36 @@
 # Registro de mudanças
 
-## Added
+## 2026-03-26 — Bypass Noise Suppression
+
+### Added
+
+- **Chrome flags `WebRtcApmInAudioService` e `ChromeWideEchoCancellation`** desabilitados no `puppeteer.launch()` para reduzir noise suppression no nível do APM.
+- **Injeção via Web Audio API** (`AudioContext` → `createMediaStreamDestination` → `replaceTrack`) como caminho primário para áudio na sala. Bypassa completamente o pipeline de processamento de áudio do Chrome (noise suppression, echo cancellation, AGC).
+- **Auto-desabilitar noise cancellation** do Meet via Puppeteer: novo método `_disableNoiseCancellation()` navega automaticamente em Settings → Audio → desliga "Noise cancellation".
+- **TODO de migração Rust** documentado em `TODO/melhorias.md` (itens R-01 e R-02).
+
+### Changed
+
+- **`injectAudioStream()`** reescrito: não usa mais `MediaSource` + `captureStream()`, agora usa `AudioContext` + `createMediaStreamDestination()` para gerar track sintética sem APM.
+- **Delay de injeção** reduzido de 4s para 1s (AudioContext não precisa de warmup do MediaSource).
+- Mensagens de log atualizadas para indicar "Web Audio API bypass".
+
+### Impacto
+
+O áudio injetado no Meet agora preserva instrumentais e frequências completas, pois não passa pelo pipeline de noise suppression do Chrome. Os participantes no Meet devem ouvir a música com qualidade próxima à original.
+
+### Como validar
+
+- Compilar o projeto e iniciar o bot.
+- Juntar-se a uma sala do Meet.
+- Tocar uma música com instrumental via `!play`.
+- Verificar que os instrumentais são audíveis na sala (diferentemente do comportamento anterior, onde apenas a voz do cantor era ouvida).
+
+---
+
+## Anterior
+
+### Added
 
 - **Testes unitários** com Vitest: `MusicQueue`, helpers `urls` e `volume`.
 - **CI GitHub Actions** (build, testes com cobertura, `pnpm pack`).

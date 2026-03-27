@@ -76,14 +76,16 @@ async function playNext(): Promise<void> {
         try {
           const res = await bot!.injectAudioStream(audio.streamPort);
           if (res && typeof res === 'object' && res.ok) {
-            info(`Stream injetado (${res.replaced} sender(s), ${res.pcs} PC(s))`);
+            info(
+              `Stream injetado via Web Audio API bypass (${res.replaced} sender(s), ${res.pcs} PC(s))`
+            );
           } else if (res && typeof res === 'object' && res.error) {
             warn('Injeção de stream: ' + res.error);
           }
         } catch {
           /* ignore */
         }
-      }, 4000);
+      }, 1000);
     }
 
     await playPromise;
