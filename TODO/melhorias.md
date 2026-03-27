@@ -4,6 +4,14 @@ Legenda de impacto (estimativa): **A** alto · **M** médio · **B** baixo · **
 
 ---
 
+## ⚠️ Pendências / Validações
+
+| Status | Tópico | Notas |
+|--------|--------|-------|
+| ⏳ **Pendente** | **Bypass Noise Suppression** | O código foi implementado (injeção via Web Audio API + Chrome flags agressivos), mas **falta testar na prática** em uma sala do Meet para garantir que a voz e o instrumental não estão sofrendo cortes de frequências pelo APM. |
+
+---
+
 ## Mídia e formato
 
 | ID | Ideia | Notas | Impacto |
@@ -48,6 +56,17 @@ Hoje o fluxo assume **yt-dlp** com URLs ou `ytsearch` (em geral centrado no YouT
 
 ---
 
+## Migração para Rust (evolução futura)
+
+| ID | Ideia | Notas | Impacto |
+|----|--------|------|---------|
+| **R-01** | **Cliente WebRTC nativo em Rust** | Usar `webrtc-rs` + `cpal` para entrar no Meet sem Chrome. Controle total do pipeline de áudio — zero noise suppression do APM. Cross-platform nativo (ALSA, CoreAudio, WASAPI). | A |
+| **R-02** | **Audio engine em Rust (via FFI/NAPI)** | Manter Puppeteer para o Meet, mas delegar processamento de áudio a um módulo Rust (ex: pré-processamento anti-NS, equalização). Menor risco que R-01, complexidade intermediária. | M |
+
+**Riscos de R-01:** Meet pode bloquear clients não-Chrome (detecção de bot); signaling do Meet não é documentado; manutenção alta se Meet mudar protocolo.
+
+---
+
 ## Riscos e compliance
 
 - **Direitos de autor e ToS:** reproduzir conteúdo em reuniões pode estar sujeito a licenças e às regras de cada plataforma; documentar uso responsável.
@@ -57,7 +76,9 @@ Hoje o fluxo assume **yt-dlp** com URLs ou `ytsearch` (em geral centrado no YouT
 
 ## Ordem sugerida (não vinculativa)
 
-1. **P-01** / **P-03** — maior valor com mudanças relativamente localizadas (URLs e fila).  
-2. **M-03** — ficheiros locais, reutilizando ffmpeg.  
-3. **M-01** — vídeo só após definir objetivo e limites de performance.  
-4. **P-02** — quando a lista de fontes crescer e o código `getInfo`/`play` começar a ramificar demais.
+1. **Validação do Bypass** — Confirmar se o bypass do Web Audio API resolveu a remoção de instrumentais antes de avançar para features de maior risco (Rust, Webcams virtuais).
+2. **Reestruturação Monorepo** — Preparar `node/core`, `node/meet`, `node/discord` e `rust/`.
+3. **P-01** / **P-03** — maior valor com mudanças relativamente localizadas (URLs e fila).  
+4. **M-03** — ficheiros locais, reutilizando ffmpeg.  
+5. **M-01** — vídeo só após definir objetivo e limites de performance (webcam virtual v4l2loopback).  
+6. **P-02** — quando a lista de fontes crescer e o código `getInfo`/`play` começar a ramificar demais.
